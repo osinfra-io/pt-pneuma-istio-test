@@ -24,4 +24,10 @@ jobs:
           go-version: '^1.25'
 
       - name: Run tests
-        run: go test ./...
+        run: |
+          go test -v ./... > /tmp/test-output.txt 2>&1; EXIT_CODE=$?
+          echo "## Go Test Results" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat /tmp/test-output.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          exit $EXIT_CODE
