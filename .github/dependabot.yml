@@ -22,9 +22,3 @@ updates:
       - "**/*"
     schedule:
       interval: daily
-
-  - package-ecosystem: terraform
-    directories:
-      - "**/*"
-    schedule:
-      interval: daily

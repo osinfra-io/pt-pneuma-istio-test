@@ -5,7 +5,7 @@ metadata:
   description: An example Go application that shows metadata about the Google Kubernetes Engine (GKE) cluster.
   title: istio-test
   annotations:
-    github.com/project-slug: osinfra-io/istio-test
+    github.com/project-slug: osinfra-io/pt-pneuma-istio-test
   tags:
     - go
   links:
