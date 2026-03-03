@@ -2,6 +2,31 @@
 
 An example Istio test application that shows information about the Google Kubernetes Engine (GKE) cluster.
 
+## GitHub Actions Workflows
+
+```mermaid
+graph LR
+    A[Sandbox]
+    A --> B[Go: Tests]
+
+    C[Release]
+    C --> D[Go: Tests]
+    D --> E[Production Registry: us-docker.pkg.dev]
+
+    style A fill:#fff4e6,color:#000
+    style B fill:#d4edda,color:#000
+    style C fill:#fff4e6,color:#000
+    style D fill:#d4edda,color:#000
+    style E fill:#e6d9f5,color:#000
+```
+
+**Workflow Details:**
+
+- **Sandbox**: Triggered on pull request (opened, synchronize), excluding .md files; manual dispatch — runs Go tests
+- **Release**: Triggered on published GitHub release — runs Go tests, then builds and pushes the container image to `us-docker.pkg.dev/pt-corpus-tf16-prod/pt-pneuma-standard/istio-test`
+- **Registry**: `us-docker.pkg.dev/pt-corpus-tf16-prod/pt-pneuma-standard/istio-test`
+- **Authentication**: Workload Identity Federation via `pt-pneuma-github@pt-corpus-tf16-prod.iam.gserviceaccount.com`
+
 ## Usage
 
 ```yaml

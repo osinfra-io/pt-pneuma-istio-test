@@ -44,14 +44,6 @@ func NewClient(httpTimeout time.Duration, maxRetries int, baseRetryDelay, maxRet
 	}
 }
 
-// Default client for backward compatibility
-var defaultClient = NewClient(10*time.Second, 3, 100*time.Millisecond, 2*time.Second, 2.0)
-
-// FetchMetadata fetches metadata using the default client (for backward compatibility)
-func FetchMetadata(ctx context.Context, url string) (string, error) {
-	return defaultClient.FetchMetadata(ctx, url)
-}
-
 // FetchMetadata fetches metadata from the given URL with retry logic
 func (c *Client) FetchMetadata(ctx context.Context, url string) (string, error) {
 	var lastErr error
