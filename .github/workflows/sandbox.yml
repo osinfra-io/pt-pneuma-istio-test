@@ -39,6 +39,6 @@ jobs:
             DD_GIT_REPOSITORY_URL=https://github.com/${{ github.repository }}
             DD_GIT_COMMIT_SHA=${{ github.sha }}
       registry: us-docker.pkg.dev
-      service_account: pt-pneuma-github@pt-corpus-tfc9-sb.iam.gserviceaccount.com
-      tags: us-docker.pkg.dev/pt-corpus-tfc9-sb/pt-pneuma-standard/istio-test:${{ github.sha }}
-      workload_identity_provider: projects/190688376851/locations/global/workloadIdentityPools/github-actions/providers/github-actions-oidc
+      service_account: pt-pneuma-github@pt-corpus-tf16-prod.iam.gserviceaccount.com
+      tags: us-docker.pkg.dev/pt-corpus-tf16-prod/pt-pneuma-standard/istio-test:${{ github.sha }}
+      workload_identity_provider: projects/557265520053/locations/global/workloadIdentityPools/github-actions/providers/github-actions-oidc

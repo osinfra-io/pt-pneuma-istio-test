@@ -9,49 +9,13 @@ permissions:
   id-token: write
 
 jobs:
-  build_and_push_sandbox:
-    name: "Sandbox Registry: us-docker.pkg.dev"
+  build_and_push:
+    name: "Production Registry: us-docker.pkg.dev"
     uses: osinfra-io/github-misc-called-workflows/.github/workflows/build-and-push.yml@3f58f13c9ff1c2c4a94cecad4bab5d3e78d69bce # v0.2.2
     if: github.actor != 'dependabot[bot]'
     with:
       cache_from: type=gha
       cache_to: type=gha,mode=max
-      build_args: |
-            DD_GIT_REPOSITORY_URL=https://github.com/${{ github.repository }}
-            DD_GIT_COMMIT_SHA=${{ github.sha }}
-            VERSION=${{ github.event.release.tag_name }}
-      registry: us-docker.pkg.dev
-      service_account: pt-pneuma-github@pt-corpus-tfc9-sb.iam.gserviceaccount.com
-      tags: |
-        us-docker.pkg.dev/pt-corpus-tfc9-sb/pt-pneuma-standard/istio-test:${{ github.event.release.tag_name }}
-        us-docker.pkg.dev/pt-corpus-tfc9-sb/pt-pneuma-standard/istio-test:latest
-      workload_identity_provider: projects/190688376851/locations/global/workloadIdentityPools/github-actions/providers/github-actions-oidc
-
-  build_and_push_non_production:
-    name: "Non-Production Registry: us-docker.pkg.dev"
-    uses: osinfra-io/github-misc-called-workflows/.github/workflows/build-and-push.yml@3f58f13c9ff1c2c4a94cecad4bab5d3e78d69bce # v0.2.2
-    if: github.actor != 'dependabot[bot]'
-    needs: build_and_push_sandbox
-    with:
-      cache_from: type=gha
-      build_args: |
-            DD_GIT_REPOSITORY_URL=https://github.com/${{ github.repository }}
-            DD_GIT_COMMIT_SHA=${{ github.sha }}
-            VERSION=${{ github.event.release.tag_name }}
-      registry: us-docker.pkg.dev
-      service_account: pt-pneuma-github@pt-corpus-tf61-nonprod.iam.gserviceaccount.com
-      tags: |
-        us-docker.pkg.dev/pt-corpus-tf61-nonprod/pt-pneuma-standard/istio-test:${{ github.event.release.tag_name }}
-        us-docker.pkg.dev/pt-corpus-tf61-nonprod/pt-pneuma-standard/istio-test:latest
-      workload_identity_provider: projects/640681940147/locations/global/workloadIdentityPools/github-actions/providers/github-actions-oidc
-
-  build_and_push_production:
-    name: "Production Registry: us-docker.pkg.dev"
-    uses: osinfra-io/github-misc-called-workflows/.github/workflows/build-and-push.yml@3f58f13c9ff1c2c4a94cecad4bab5d3e78d69bce # v0.2.2
-    if: github.actor != 'dependabot[bot]'
-    needs: build_and_push_non_production
-    with:
-      cache_from: type=gha
       build_args: |
             DD_GIT_REPOSITORY_URL=https://github.com/${{ github.repository }}
             DD_GIT_COMMIT_SHA=${{ github.sha }}
