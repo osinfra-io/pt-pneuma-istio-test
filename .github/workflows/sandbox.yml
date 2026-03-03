@@ -9,7 +9,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   run_go_tests:
@@ -26,19 +25,3 @@ jobs:
 
       - name: Run tests
         run: go test ./...
-
-  build_and_push_us:
-    name: "Sandbox Registry: us-docker.pkg.dev"
-    uses: osinfra-io/github-misc-called-workflows/.github/workflows/build-and-push.yml@3f58f13c9ff1c2c4a94cecad4bab5d3e78d69bce # v0.2.2
-    if: github.actor != 'dependabot[bot]'
-    needs: run_go_tests
-    with:
-      cache_from: type=gha
-      cache_to: type=gha,mode=max
-      build_args: |
-            DD_GIT_REPOSITORY_URL=https://github.com/${{ github.repository }}
-            DD_GIT_COMMIT_SHA=${{ github.sha }}
-      registry: us-docker.pkg.dev
-      service_account: plt-istio-test-github@plt-lz-backend-tf69-sb.iam.gserviceaccount.com
-      tags: us-docker.pkg.dev/plt-lz-services-tf7f-sb/plt-docker-standard/istio-test:${{ github.sha }}
-      workload_identity_provider: projects/746490462722/locations/global/workloadIdentityPools/github-actions/providers/github-actions-oidc
