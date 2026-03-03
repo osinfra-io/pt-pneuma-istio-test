@@ -24,7 +24,7 @@ jobs:
       - name: Run tests
         run: |
           set -o pipefail
-          go test -v ./... | tee /tmp/go-test-output.txt
+          go test ./... | tee /tmp/go-test-output.txt
 
       - name: Go test summary
         continue-on-error: true
