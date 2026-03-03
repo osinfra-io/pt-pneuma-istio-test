@@ -16,4 +16,4 @@ metadata:
 spec:
   type: service
   lifecycle: production
-  owner: platform-google-cloud-kubernetes
+  owner: pt-pneuma
