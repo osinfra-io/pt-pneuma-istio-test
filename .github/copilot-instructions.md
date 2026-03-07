@@ -61,5 +61,5 @@ After a PR is merged, pull `main` and delete the local branch to stay clean.
 
 ## References
 
-- [Repository instructions documentation](https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-repository-instructions)
+- [Repository instructions documentation](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-custom-instructions)
 
