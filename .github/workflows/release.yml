@@ -19,7 +19,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6
         with:
-          go-version: '^1.25'
+          go-version: "^1.25"
 
       - name: Run tests
         run: |
@@ -39,16 +39,16 @@ jobs:
 
   build_and_push:
     name: "Production Registry: us-docker.pkg.dev"
-    uses: osinfra-io/github-misc-called-workflows/.github/workflows/build-and-push.yml@3f58f13c9ff1c2c4a94cecad4bab5d3e78d69bce # v0.2.2
+    uses: osinfra-io/pt-techne-misc-workflows/.github/workflows/build-and-push.yml@3f58f13c9ff1c2c4a94cecad4bab5d3e78d69bce # v0.2.2
     if: github.actor != 'dependabot[bot]'
     needs: run_go_tests
     with:
       cache_from: type=registry,ref=us-docker.pkg.dev/pt-corpus-tf16-prod/pt-pneuma-standard/istio-test:latest
       cache_to: type=inline
       build_args: |
-            DD_GIT_REPOSITORY_URL=https://github.com/${{ github.repository }}
-            DD_GIT_COMMIT_SHA=${{ github.sha }}
-            VERSION=${{ github.event.release.tag_name }}
+        DD_GIT_REPOSITORY_URL=https://github.com/${{ github.repository }}
+        DD_GIT_COMMIT_SHA=${{ github.sha }}
+        VERSION=${{ github.event.release.tag_name }}
       registry: us-docker.pkg.dev
       service_account: pt-pneuma-github@pt-corpus-tf16-prod.iam.gserviceaccount.com
       tags: |
