@@ -1,5 +1,7 @@
 # <img align="left" width="45" height="45" alt="Istio Test Logo" src="https://github.com/user-attachments/assets/ce1fe535-f4f3-451f-bbd9-45fde04c000c">Istio Test
 
+[![Dependabot](https://img.shields.io/github/actions/workflow/status/osinfra-io/pt-pneuma-istio-test/dependabot.yml?style=for-the-badge&logo=github&color=2088FF&label=Dependabot)](https://github.com/osinfra-io/pt-pneuma-istio-test/actions/workflows/dependabot.yml)
+
 An example Istio test application that shows information about the Google Kubernetes Engine (GKE) cluster.
 
 ## GitHub Actions Workflows
