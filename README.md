@@ -6,22 +6,6 @@ An example Istio test application that shows information about the Google Kubern
 
 ## GitHub Actions Workflows
 
-```mermaid
-graph LR
-    A[Sandbox]
-    A --> B[Go: Tests]
-
-    C[Release]
-    C --> D[Go: Tests]
-    D --> E[Production Registry: us-docker.pkg.dev]
-
-    style A fill:#fff4e6,color:#000
-    style B fill:#d4edda,color:#000
-    style C fill:#fff4e6,color:#000
-    style D fill:#d4edda,color:#000
-    style E fill:#e6d9f5,color:#000
-```
-
 **Workflow Details:**
 
 - **Sandbox**: Triggered on pull request (opened, synchronize), excluding .md files; manual dispatch — runs Go tests
