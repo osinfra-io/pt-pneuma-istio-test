@@ -8,6 +8,10 @@ updates:
       - "**/*"
     schedule:
       interval: daily
+    groups:
+      docker:
+        patterns:
+          - "*"
 
   - package-ecosystem: github-actions
 
@@ -16,14 +20,26 @@ updates:
     directory: /
     schedule:
       interval: daily
+    groups:
+      github-actions:
+        patterns:
+          - "*"
 
   - package-ecosystem: gomod
     directories:
       - "**/*"
     schedule:
       interval: daily
+    groups:
+      gomod:
+        patterns:
+          - "*"
 
   - package-ecosystem: pre-commit
     directory: /
     schedule:
       interval: daily
+    groups:
+      pre-commit:
+        patterns:
+          - "*"
