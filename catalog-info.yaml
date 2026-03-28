@@ -8,10 +8,6 @@ metadata:
     github.com/project-slug: osinfra-io/pt-pneuma-istio-test
   tags:
     - go
-  links:
-    - url: https://discord.gg/JHXBXkkpqK
-      title: discord
-      icon: chat
 
 spec:
   type: service
