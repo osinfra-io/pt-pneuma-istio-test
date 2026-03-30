@@ -39,7 +39,7 @@ jobs:
 
   build_and_push:
     name: "Production Registry: us-docker.pkg.dev"
-    uses: osinfra-io/pt-techne-misc-workflows/.github/workflows/build-and-push.yml@fb82a00e1b162759779a236c3cb057bf3de5b3a9 # v0.2.4
+    uses: osinfra-io/pt-techne-misc-workflows/.github/workflows/build-and-push.yml@9c0da8a98a2844d9197de062f22247c677f6f1ee # v0.2.5
     if: github.actor != 'dependabot[bot]'
     needs: run_go_tests
     with:
