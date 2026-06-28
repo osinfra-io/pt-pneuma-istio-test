@@ -28,6 +28,12 @@ jobs:
           set -o pipefail
           go test ./... | tee /tmp/go-test-output.txt
 
+      - name: Upload coverage reports to Datadog
+        uses: DataDog/coverage-upload-github-action@d9548b1c3c4ab639d5d3ab29a1508af188975f77 # v1.0.5
+        with:
+          api_key: ${{ secrets.DATADOG_API_KEY }}
+          site: datadoghq.com
+
       - name: Go test summary
         continue-on-error: true
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
