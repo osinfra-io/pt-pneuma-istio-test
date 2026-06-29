@@ -19,14 +19,21 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Set up Go
-        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.0.0
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
-          go-version: '^1.25'
+          go-version: "^1.26"
 
       - name: Run tests
         run: |
           set -o pipefail
-          go test ./... | tee /tmp/go-test-output.txt
+          go test -coverprofile=coverage.out ./... | tee /tmp/go-test-output.txt
+
+      - name: Upload coverage reports to Datadog
+        if: ${{ secrets.DATADOG_API_KEY != '' && github.actor != 'dependabot[bot]' }}
+        uses: DataDog/coverage-upload-github-action@d9548b1c3c4ab639d5d3ab29a1508af188975f77 # v1.0.5
+        with:
+          api_key: ${{ secrets.DATADOG_API_KEY }}
+          site: datadoghq.com
 
       - name: Go test summary
         continue-on-error: true
