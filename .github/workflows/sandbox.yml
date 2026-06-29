@@ -29,6 +29,7 @@ jobs:
           go test -coverprofile=coverage.out ./... | tee /tmp/go-test-output.txt
 
       - name: Upload coverage reports to Datadog
+        if: ${{ secrets.DATADOG_API_KEY != '' && github.actor != 'dependabot[bot]' }}
         uses: DataDog/coverage-upload-github-action@d9548b1c3c4ab639d5d3ab29a1508af188975f77 # v1.0.5
         with:
           api_key: ${{ secrets.DATADOG_API_KEY }}
