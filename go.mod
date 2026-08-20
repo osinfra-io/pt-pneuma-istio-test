@@ -4,7 +4,7 @@ go 1.26.4
 
 require (
 	github.com/sirupsen/logrus v1.10.0
-	github.com/stretchr/testify v1.12.0
+	github.com/stretchr/testify v1.12.1
 )
 
 require (
@@ -73,7 +73,7 @@ require (
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.28.0 // indirect
-	go.yaml.in/yaml/v3 v3.0.4 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/crypto v0.53.0 // indirect
 	golang.org/x/exp v0.0.0-20260611194520-c48552f49976 // indirect
 	golang.org/x/mod v0.37.0 // indirect
@@ -85,7 +85,4 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 )
 
-require (
-	gopkg.in/DataDog/dd-trace-go.v1 v1.74.8
-	gopkg.in/yaml.v3 v3.0.1 // indirect
-)
+require gopkg.in/DataDog/dd-trace-go.v1 v1.74.8
