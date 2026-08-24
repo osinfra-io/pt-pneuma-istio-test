@@ -3,7 +3,7 @@ module istio-test
 go 1.26.4
 
 require (
-	github.com/sirupsen/logrus v1.10.0
+	github.com/sirupsen/logrus v1.10.1
 	github.com/stretchr/testify v1.12.1
 )
 
