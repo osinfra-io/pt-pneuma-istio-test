@@ -37,23 +37,15 @@ func main() {
 
 	observability.InfoWithContext(ctx, "Application is starting")
 
-	// Create security options once at startup for better performance
-	apiSecurityOptions := security.CustomSecurityOptions(
-		conf.Security.APICOEP,
-		conf.Security.APICOOP,
-		conf.Security.APICORP,
-	)
-
-	defaultSecurityOptions := security.CustomSecurityOptions(
-		conf.Security.DefaultCOEP,
-		conf.Security.DefaultCOOP,
-		conf.Security.DefaultCORP,
-	)
-
-	// Log security policy configuration for observability
-	observability.InfoWithContext(ctx, fmt.Sprintf("Security policies configured - API: COEP='%s' COOP='%s' CORP='%s', Default: COEP='%s' COOP='%s' CORP='%s'",
-		conf.Security.APICOEP, conf.Security.APICOOP, conf.Security.APICORP,
-		conf.Security.DefaultCOEP, conf.Security.DefaultCOOP, conf.Security.DefaultCORP))
+	apiSecurityOptions := security.SecurityHeadersOptions{
+		COOP: "same-origin-allow-popups",
+		CORP: "cross-origin",
+	}
+	defaultSecurityOptions := security.SecurityHeadersOptions{
+		COEP: "require-corp",
+		COOP: "same-origin",
+		CORP: "same-origin",
+	}
 
 	if conf.Observability.EnableTracing {
 		tracer.Start(tracer.WithRuntimeMetrics())

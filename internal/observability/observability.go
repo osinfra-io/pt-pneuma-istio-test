@@ -34,15 +34,14 @@ func Init(logLevel string, cfg Config) {
 	log.SetOutput(os.Stdout)
 	log.Info("Logrus set to output to stdout")
 
-	// Parse the provided log level, fallback to environment variable if empty, then to InfoLevel
+	// Parse the provided log level, falling back to InfoLevel when empty or invalid.
 	var level logrus.Level
 	var err error
 
-	if logLevel != "" {
-		level, err = logrus.ParseLevel(logLevel)
+	if logLevel == "" {
+		level = logrus.InfoLevel
 	} else {
-		// Fallback to environment variable for backward compatibility
-		level, err = logrus.ParseLevel(os.Getenv("LOG_LEVEL"))
+		level, err = logrus.ParseLevel(logLevel)
 	}
 
 	if err != nil {
@@ -64,10 +63,6 @@ func InfoWithContext(ctx context.Context, msg string) {
 
 func ErrorWithContext(ctx context.Context, msg string) {
 	log.WithContext(ctx).Error(msg)
-}
-
-func WarnWithContext(ctx context.Context, msg string) {
-	log.WithContext(ctx).Warn(msg)
 }
 
 // responseWrapper wraps http.ResponseWriter to capture response status and size
@@ -185,11 +180,6 @@ func RequestLoggingMiddleware(next http.Handler) http.Handler {
 			logEntry.Info(message)
 		}
 	})
-}
-
-// RequestLoggingMiddlewareFunc provides request/response logging for handler functions
-func RequestLoggingMiddlewareFunc(next http.HandlerFunc) http.HandlerFunc {
-	return RequestLoggingMiddleware(http.HandlerFunc(next)).ServeHTTP
 }
 
 // getClientIP extracts the client IP address from the request
