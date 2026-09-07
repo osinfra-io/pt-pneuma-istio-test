@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMetadataHandler(t *testing.T) {
@@ -70,7 +71,7 @@ func TestMetadataHandler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resp, err := http.Get(server.URL + tt.path)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			defer resp.Body.Close()
 
 			assert.Equal(t, tt.expectedCode, resp.StatusCode)
