@@ -23,19 +23,15 @@ jobs:
 
       - name: Run tests
         run: |
+          echo '```go' >> "$GITHUB_STEP_SUMMARY"
           set -o pipefail
-          go test ./... | tee /tmp/go-test-output.txt
-
-      - name: Go test summary
-        continue-on-error: true
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        with:
-          script: |
-            const fs = require('fs');
-            const testOutput = fs.readFileSync('/tmp/go-test-output.txt', 'utf8');
-            core.summary
-              .addCodeBlock(testOutput, 'go')
-              .write();
+          if go test ./... | tee -a "$GITHUB_STEP_SUMMARY"; then
+            status=0
+          else
+            status=$?
+          fi
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          exit $status
 
   build_and_push:
     name: "Production Registry: us-docker.pkg.dev"

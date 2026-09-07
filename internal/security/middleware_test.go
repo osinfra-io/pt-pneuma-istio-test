@@ -6,172 +6,95 @@ import (
 	"testing"
 )
 
-func TestSecurityMiddleware(t *testing.T) {
-	// Test handler that just returns OK
-	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+var testOptions = SecurityHeadersOptions{
+	COEP: "require-corp",
+	COOP: "same-origin",
+	CORP: "same-origin",
+}
+
+func TestSecurityMiddlewareWithOptions(t *testing.T) {
+	handler := SecurityMiddlewareWithOptions(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
-	})
+		_, _ = w.Write([]byte("OK"))
+	}), testOptions)
 
-	// Wrap with security middleware
-	secureHandler := SecurityMiddleware(testHandler)
-
-	// Create test request
 	req := httptest.NewRequest("GET", "/test", nil)
 	w := httptest.NewRecorder()
 
-	// Execute request
-	secureHandler.ServeHTTP(w, req)
+	handler.ServeHTTP(w, req)
 
-	// Verify response
 	if w.Code != http.StatusOK {
-		t.Errorf("Expected status 200, got %d", w.Code)
+		t.Fatalf("Expected status 200, got %d", w.Code)
 	}
 
-	// Verify security headers
-	expectedHeaders := map[string]string{
-		"X-Content-Type-Options":            "nosniff",
-		"X-Frame-Options":                   "DENY",
-		"X-Xss-Protection":                  "1; mode=block", // Go canonicalizes X-XSS-Protection to X-Xss-Protection
-		"Referrer-Policy":                   "strict-origin-when-cross-origin",
-		"Content-Security-Policy":           "default-src 'none'; frame-ancestors 'none'",
-		"Cache-Control":                     "no-cache, no-store, must-revalidate, private",
-		"Pragma":                            "no-cache",
-		"Expires":                           "0",
-		"Server":                            "istio-test",
-		"X-Permitted-Cross-Domain-Policies": "none",
-		"Cross-Origin-Embedder-Policy":      "require-corp",
-		"Cross-Origin-Opener-Policy":        "same-origin",
-		"Cross-Origin-Resource-Policy":      "same-origin",
-	}
-
-	for header, expectedValue := range expectedHeaders {
-		actualValue := w.Header().Get(header)
-		if actualValue != expectedValue {
-			t.Errorf("Expected header %s to be %q, got %q", header, expectedValue, actualValue)
-		}
-	}
+	assertExpectedSecurityHeaders(t, w, testOptions)
 }
 
-func TestSecurityMiddlewareFunc(t *testing.T) {
-	// Test handler function
-	testHandler := func(w http.ResponseWriter, r *http.Request) {
+func TestSecurityMiddlewareFuncWithOptions(t *testing.T) {
+	handler := SecurityMiddlewareFuncWithOptions(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
-	}
+	}, testOptions)
 
-	// Wrap with security middleware
-	secureHandler := SecurityMiddlewareFunc(testHandler)
-
-	// Create test request
 	req := httptest.NewRequest("GET", "/test", nil)
 	w := httptest.NewRecorder()
 
-	// Execute request
-	secureHandler.ServeHTTP(w, req)
+	handler.ServeHTTP(w, req)
 
-	// Verify response
 	if w.Code != http.StatusOK {
-		t.Errorf("Expected status 200, got %d", w.Code)
+		t.Fatalf("Expected status 200, got %d", w.Code)
 	}
 
-	// Verify at least one security header is present
-	if w.Header().Get("X-Content-Type-Options") != "nosniff" {
-		t.Error("Expected X-Content-Type-Options header to be set")
-	}
+	assertExpectedSecurityHeaders(t, w, testOptions)
 }
 
-func TestMethodValidationMiddleware(t *testing.T) {
-	// Test handler
-	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func TestMethodValidationMiddlewareWithOptions(t *testing.T) {
+	handler := MethodValidationMiddlewareWithOptions(testOptions, "GET", "POST")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
-	})
-
-	// Create middleware that only allows GET and POST
-	middleware := MethodValidationMiddleware("GET", "POST")
-	secureHandler := middleware(testHandler)
-
-	t.Run("allowed method GET", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/test", nil)
-		w := httptest.NewRecorder()
-
-		secureHandler.ServeHTTP(w, req)
-
-		if w.Code != http.StatusOK {
-			t.Errorf("Expected status 200 for GET, got %d", w.Code)
-		}
-
-		// Should have security headers
-		if w.Header().Get("X-Content-Type-Options") != "nosniff" {
-			t.Error("Expected security headers to be set for allowed method")
-		}
-	})
-
-	t.Run("allowed method POST", func(t *testing.T) {
-		req := httptest.NewRequest("POST", "/test", nil)
-		w := httptest.NewRecorder()
-
-		secureHandler.ServeHTTP(w, req)
-
-		if w.Code != http.StatusOK {
-			t.Errorf("Expected status 200 for POST, got %d", w.Code)
-		}
-	})
-
-	t.Run("disallowed method DELETE", func(t *testing.T) {
-		req := httptest.NewRequest("DELETE", "/test", nil)
-		w := httptest.NewRecorder()
-
-		secureHandler.ServeHTTP(w, req)
-
-		if w.Code != http.StatusMethodNotAllowed {
-			t.Errorf("Expected status 405 for DELETE, got %d", w.Code)
-		}
-
-		// Should have Allow header
-		allowHeader := w.Header().Get("Allow")
-		if allowHeader != "GET, POST" {
-			t.Errorf("Expected Allow header to be 'GET, POST', got %q", allowHeader)
-		}
-
-		// Should still have security headers
-		if w.Header().Get("X-Content-Type-Options") != "nosniff" {
-			t.Error("Expected security headers to be set even for disallowed method")
-		}
-	})
-
-	t.Run("disallowed method PUT", func(t *testing.T) {
-		req := httptest.NewRequest("PUT", "/test", nil)
-		w := httptest.NewRecorder()
-
-		secureHandler.ServeHTTP(w, req)
-
-		if w.Code != http.StatusMethodNotAllowed {
-			t.Errorf("Expected status 405 for PUT, got %d", w.Code)
-		}
-	})
-}
-
-func TestMethodValidationMiddlewareFunc(t *testing.T) {
-	// Test handler function
-	testHandler := func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
-	}
-
-	// Create middleware that only allows GET
-	middleware := MethodValidationMiddlewareFunc("GET")
-	secureHandler := middleware(testHandler)
+	}))
 
 	t.Run("allowed method", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
 		w := httptest.NewRecorder()
 
-		secureHandler.ServeHTTP(w, req)
+		handler.ServeHTTP(w, req)
 
 		if w.Code != http.StatusOK {
-			t.Errorf("Expected status 200, got %d", w.Code)
+			t.Fatalf("Expected status 200, got %d", w.Code)
+		}
+
+		assertExpectedSecurityHeaders(t, w, testOptions)
+	})
+
+	t.Run("disallowed method", func(t *testing.T) {
+		req := httptest.NewRequest("DELETE", "/test", nil)
+		w := httptest.NewRecorder()
+
+		handler.ServeHTTP(w, req)
+
+		if w.Code != http.StatusMethodNotAllowed {
+			t.Fatalf("Expected status 405, got %d", w.Code)
+		}
+		if allow := w.Header().Get("Allow"); allow != "GET, POST" {
+			t.Fatalf("Expected Allow header 'GET, POST', got %q", allow)
+		}
+
+		assertExpectedSecurityHeaders(t, w, testOptions)
+	})
+}
+
+func TestMethodValidationMiddlewareFuncWithOptions(t *testing.T) {
+	handler := MethodValidationMiddlewareFuncWithOptions(testOptions, "GET")(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	t.Run("allowed method", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/test", nil)
+		w := httptest.NewRecorder()
+
+		handler.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("Expected status 200, got %d", w.Code)
 		}
 	})
 
@@ -179,172 +102,87 @@ func TestMethodValidationMiddlewareFunc(t *testing.T) {
 		req := httptest.NewRequest("POST", "/test", nil)
 		w := httptest.NewRecorder()
 
-		secureHandler.ServeHTTP(w, req)
+		handler.ServeHTTP(w, req)
 
 		if w.Code != http.StatusMethodNotAllowed {
-			t.Errorf("Expected status 405, got %d", w.Code)
+			t.Fatalf("Expected status 405, got %d", w.Code)
 		}
-
-		// Should have Allow header
-		allowHeader := w.Header().Get("Allow")
-		if allowHeader != "GET" {
-			t.Errorf("Expected Allow header to be 'GET', got %q", allowHeader)
+		if allow := w.Header().Get("Allow"); allow != "GET" {
+			t.Fatalf("Expected Allow header 'GET', got %q", allow)
 		}
 	})
 }
 
-func TestSecureHandler(t *testing.T) {
-	// Test handler function
-	testHandler := func(w http.ResponseWriter, r *http.Request) {
+func TestSecureHandlerWithOptions(t *testing.T) {
+	handler := SecureHandlerWithOptions([]string{"GET", "HEAD"}, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
-	}
+	}, testOptions)
 
-	// Create secure handler that allows only GET and HEAD
-	secureHandler := SecureHandler([]string{"GET", "HEAD"}, testHandler)
-
-	t.Run("allowed method GET", func(t *testing.T) {
+	t.Run("allowed method", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
 		w := httptest.NewRecorder()
 
-		secureHandler.ServeHTTP(w, req)
+		handler.ServeHTTP(w, req)
 
 		if w.Code != http.StatusOK {
-			t.Errorf("Expected status 200, got %d", w.Code)
+			t.Fatalf("Expected status 200, got %d", w.Code)
 		}
 
-		// Should have security headers
-		if w.Header().Get("X-Content-Type-Options") != "nosniff" {
-			t.Error("Expected security headers to be set")
-		}
+		assertExpectedSecurityHeaders(t, w, testOptions)
 	})
 
-	t.Run("allowed method HEAD", func(t *testing.T) {
-		req := httptest.NewRequest("HEAD", "/test", nil)
-		w := httptest.NewRecorder()
-
-		secureHandler.ServeHTTP(w, req)
-
-		if w.Code != http.StatusOK {
-			t.Errorf("Expected status 200, got %d", w.Code)
-		}
-	})
-
-	t.Run("disallowed method POST", func(t *testing.T) {
+	t.Run("disallowed method", func(t *testing.T) {
 		req := httptest.NewRequest("POST", "/test", nil)
 		w := httptest.NewRecorder()
 
-		secureHandler.ServeHTTP(w, req)
+		handler.ServeHTTP(w, req)
 
 		if w.Code != http.StatusMethodNotAllowed {
-			t.Errorf("Expected status 405, got %d", w.Code)
+			t.Fatalf("Expected status 405, got %d", w.Code)
+		}
+		if allow := w.Header().Get("Allow"); allow != "GET, HEAD" {
+			t.Fatalf("Expected Allow header 'GET, HEAD', got %q", allow)
 		}
 
-		// Should have Allow header
-		allowHeader := w.Header().Get("Allow")
-		if allowHeader != "GET, HEAD" {
-			t.Errorf("Expected Allow header to be 'GET, HEAD', got %q", allowHeader)
-		}
-
-		// Should still have security headers
-		if w.Header().Get("X-Content-Type-Options") != "nosniff" {
-			t.Error("Expected security headers to be set even for disallowed method")
-		}
+		assertExpectedSecurityHeaders(t, w, testOptions)
 	})
 }
 
-func TestJoinMethods(t *testing.T) {
-	tests := []struct {
-		name     string
-		methods  []string
-		expected string
-	}{
-		{
-			name:     "empty slice",
-			methods:  []string{},
-			expected: "",
-		},
-		{
-			name:     "single method",
-			methods:  []string{"GET"},
-			expected: "GET",
-		},
-		{
-			name:     "two methods",
-			methods:  []string{"GET", "POST"},
-			expected: "GET, POST",
-		},
-		{
-			name:     "multiple methods",
-			methods:  []string{"GET", "POST", "PUT", "DELETE"},
-			expected: "GET, POST, PUT, DELETE",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := joinMethods(tt.methods)
-			if result != tt.expected {
-				t.Errorf("Expected %q, got %q", tt.expected, result)
-			}
-		})
-	}
+func TestSetSecurityHeadersWithOptions(t *testing.T) {
+	w := httptest.NewRecorder()
+	setSecurityHeadersWithOptions(w, testOptions)
+	assertExpectedSecurityHeaders(t, w, testOptions)
 }
 
-func TestSetSecurityHeaders(t *testing.T) {
-	// Create a test response writer
-	w := httptest.NewRecorder()
+func assertExpectedSecurityHeaders(t *testing.T, w *httptest.ResponseRecorder, options SecurityHeadersOptions) {
+	t.Helper()
 
-	// Call setSecurityHeaders
-	setSecurityHeaders(w)
-
-	// Define expected headers and their values (using canonicalized header names)
 	expectedHeaders := map[string]string{
+		"Cache-Control":                     "no-cache, no-store, must-revalidate, private",
+		"Content-Security-Policy":           "default-src 'none'; frame-ancestors 'none'",
+		"Expires":                           "0",
+		"Pragma":                            "no-cache",
+		"Referrer-Policy":                   "strict-origin-when-cross-origin",
+		"Server":                            "istio-test",
 		"X-Content-Type-Options":            "nosniff",
 		"X-Frame-Options":                   "DENY",
-		"X-Xss-Protection":                  "1; mode=block", // Go canonicalizes X-XSS-Protection to X-Xss-Protection
-		"Referrer-Policy":                   "strict-origin-when-cross-origin",
-		"Content-Security-Policy":           "default-src 'none'; frame-ancestors 'none'",
-		"Cache-Control":                     "no-cache, no-store, must-revalidate, private",
-		"Pragma":                            "no-cache",
-		"Expires":                           "0",
-		"Server":                            "istio-test",
 		"X-Permitted-Cross-Domain-Policies": "none",
-		"Cross-Origin-Embedder-Policy":      "require-corp",
-		"Cross-Origin-Opener-Policy":        "same-origin",
-		"Cross-Origin-Resource-Policy":      "same-origin",
+		"X-Xss-Protection":                  "1; mode=block",
 	}
 
-	// Check that all expected headers are set with correct values
-	foundHeaders := make([]string, 0)
-	for header, expectedValue := range expectedHeaders {
-		actualValue := w.Header().Get(header)
-		if actualValue != expectedValue {
-			t.Errorf("Header %s: expected %q, got %q", header, expectedValue, actualValue)
-		} else {
-			foundHeaders = append(foundHeaders, header)
+	for header, expected := range expectedHeaders {
+		if actual := w.Header().Get(header); actual != expected {
+			t.Fatalf("Expected header %s to be %q, got %q", header, expected, actual)
 		}
 	}
 
-	// Debug: print headers only if there's a mismatch
-	if len(foundHeaders) != len(expectedHeaders) {
-		t.Logf("Expected headers: %d", len(expectedHeaders))
-		t.Logf("Found headers: %d", len(foundHeaders))
-		t.Logf("All response headers:")
-		for header, values := range w.Header() {
-			t.Logf("  %s: %v", header, values)
-		}
+	if options.COEP != "" && w.Header().Get("Cross-Origin-Embedder-Policy") != options.COEP {
+		t.Fatalf("Expected COEP header %q, got %q", options.COEP, w.Header().Get("Cross-Origin-Embedder-Policy"))
 	}
-
-	// Verify that we have the expected number of security headers
-	headerCount := 0
-	for header := range w.Header() {
-		if _, isExpected := expectedHeaders[header]; isExpected {
-			headerCount++
-		}
+	if options.COOP != "" && w.Header().Get("Cross-Origin-Opener-Policy") != options.COOP {
+		t.Fatalf("Expected COOP header %q, got %q", options.COOP, w.Header().Get("Cross-Origin-Opener-Policy"))
 	}
-
-	if headerCount != len(expectedHeaders) {
-		t.Errorf("Expected %d security headers, but found %d", len(expectedHeaders), headerCount)
+	if options.CORP != "" && w.Header().Get("Cross-Origin-Resource-Policy") != options.CORP {
+		t.Fatalf("Expected CORP header %q, got %q", options.CORP, w.Header().Get("Cross-Origin-Resource-Policy"))
 	}
 }

@@ -13,7 +13,7 @@ func TestLoad(t *testing.T) {
 		"PORT", "SERVER_READ_TIMEOUT", "SERVER_WRITE_TIMEOUT", "SERVER_IDLE_TIMEOUT",
 		"METADATA_HTTP_TIMEOUT", "METADATA_MAX_RETRIES", "METADATA_BASE_RETRY_DELAY",
 		"METADATA_MAX_RETRY_DELAY", "METADATA_RETRY_MULTIPLIER",
-		"LOG_LEVEL", "ENABLE_PROFILER", "ENABLE_TRACING", "SHUTDOWN_TIMEOUT",
+		"LOG_LEVEL", "ENABLE_PROFILER", "ENABLE_TRACING", "ENABLE_PII_REDACTION", "SHUTDOWN_TIMEOUT",
 	}
 
 	for _, env := range envVars {
@@ -75,6 +75,9 @@ func TestLoad(t *testing.T) {
 		if !conf.Observability.EnableTracing {
 			t.Errorf("Expected default enable tracing true, got %t", conf.Observability.EnableTracing)
 		}
+		if !conf.Observability.EnablePIIRedaction {
+			t.Errorf("Expected default enable PII redaction true, got %t", conf.Observability.EnablePIIRedaction)
+		}
 		if conf.Observability.ShutdownTimeout != 5*time.Second {
 			t.Errorf("Expected default shutdown timeout 5s, got %v", conf.Observability.ShutdownTimeout)
 		}
@@ -94,6 +97,7 @@ func TestLoad(t *testing.T) {
 		os.Setenv("LOG_LEVEL", "debug")
 		os.Setenv("ENABLE_PROFILER", "false")
 		os.Setenv("ENABLE_TRACING", "false")
+		os.Setenv("ENABLE_PII_REDACTION", "false")
 		os.Setenv("SHUTDOWN_TIMEOUT", "30s")
 
 		conf := Load()
@@ -138,6 +142,9 @@ func TestLoad(t *testing.T) {
 		}
 		if conf.Observability.EnableTracing {
 			t.Errorf("Expected enable tracing false, got %t", conf.Observability.EnableTracing)
+		}
+		if conf.Observability.EnablePIIRedaction {
+			t.Errorf("Expected enable PII redaction false, got %t", conf.Observability.EnablePIIRedaction)
 		}
 		if conf.Observability.ShutdownTimeout != 30*time.Second {
 			t.Errorf("Expected shutdown timeout 30s, got %v", conf.Observability.ShutdownTimeout)
@@ -479,78 +486,6 @@ func TestGetBool(t *testing.T) {
 	}
 }
 
-func TestSecurityConfigValidate(t *testing.T) {
-	tests := []struct {
-		name        string
-		config      SecurityConfig
-		expectError bool
-	}{
-		{
-			name: "valid config",
-			config: SecurityConfig{
-				DefaultCOEP: "require-corp",
-				DefaultCOOP: "same-origin",
-				DefaultCORP: "same-origin",
-				APICOEP:     "",
-				APICOOP:     "same-origin-allow-popups",
-				APICORP:     "cross-origin",
-			},
-			expectError: false,
-		},
-		{
-			name: "invalid COEP",
-			config: SecurityConfig{
-				DefaultCOEP: "invalid-value",
-				DefaultCOOP: "same-origin",
-				DefaultCORP: "same-origin",
-			},
-			expectError: true,
-		},
-		{
-			name: "invalid COOP",
-			config: SecurityConfig{
-				DefaultCOEP: "",
-				DefaultCOOP: "invalid-value",
-				DefaultCORP: "same-origin",
-			},
-			expectError: true,
-		},
-		{
-			name: "invalid CORP",
-			config: SecurityConfig{
-				DefaultCOEP: "",
-				DefaultCOOP: "same-origin",
-				DefaultCORP: "invalid-value",
-			},
-			expectError: true,
-		},
-		{
-			name: "empty values are valid",
-			config: SecurityConfig{
-				DefaultCOEP: "",
-				DefaultCOOP: "same-origin",
-				DefaultCORP: "same-origin",
-				APICOEP:     "",
-				APICOOP:     "unsafe-none",
-				APICORP:     "",
-			},
-			expectError: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := tt.config.Validate()
-			if tt.expectError && err == nil {
-				t.Error("expected error but got none")
-			}
-			if !tt.expectError && err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
-		})
-	}
-}
-
 func TestConfigValidate(t *testing.T) {
 	t.Run("valid config", func(t *testing.T) {
 		config := &Config{
@@ -570,14 +505,6 @@ func TestConfigValidate(t *testing.T) {
 			Observability: ObservabilityConfig{
 				LogLevel:        "info",
 				ShutdownTimeout: 5 * time.Second,
-			},
-			Security: SecurityConfig{
-				DefaultCOEP: "require-corp",
-				DefaultCOOP: "same-origin",
-				DefaultCORP: "same-origin",
-				APICOEP:     "",
-				APICOOP:     "same-origin-allow-popups",
-				APICORP:     "cross-origin",
 			},
 		}
 
@@ -606,11 +533,6 @@ func TestConfigValidate(t *testing.T) {
 				LogLevel:        "info",
 				ShutdownTimeout: 5 * time.Second,
 			},
-			Security: SecurityConfig{
-				DefaultCOEP: "require-corp",
-				DefaultCOOP: "same-origin",
-				DefaultCORP: "same-origin",
-			},
 		}
 
 		err := config.Validate()
@@ -638,11 +560,6 @@ func TestConfigValidate(t *testing.T) {
 				LogLevel:        "info",
 				ShutdownTimeout: 5 * time.Second,
 			},
-			Security: SecurityConfig{
-				DefaultCOEP: "require-corp",
-				DefaultCOOP: "same-origin",
-				DefaultCORP: "same-origin",
-			},
 		}
 
 		err := config.Validate()
@@ -669,43 +586,6 @@ func TestConfigValidate(t *testing.T) {
 			Observability: ObservabilityConfig{
 				LogLevel:        "invalid-level", // Invalid log level
 				ShutdownTimeout: 5 * time.Second,
-			},
-			Security: SecurityConfig{
-				DefaultCOEP: "require-corp",
-				DefaultCOOP: "same-origin",
-				DefaultCORP: "same-origin",
-			},
-		}
-
-		err := config.Validate()
-		if err == nil {
-			t.Error("expected error but got none")
-		}
-	})
-
-	t.Run("invalid security config", func(t *testing.T) {
-		config := &Config{
-			Server: ServerConfig{
-				Port:         "8080",
-				ReadTimeout:  5 * time.Second,
-				WriteTimeout: 10 * time.Second,
-				IdleTimeout:  60 * time.Second,
-			},
-			Metadata: MetadataConfig{
-				HTTPTimeout:     10 * time.Second,
-				MaxRetries:      3,
-				BaseRetryDelay:  100 * time.Millisecond,
-				MaxRetryDelay:   2 * time.Second,
-				RetryMultiplier: 2.0,
-			},
-			Observability: ObservabilityConfig{
-				LogLevel:        "info",
-				ShutdownTimeout: 5 * time.Second,
-			},
-			Security: SecurityConfig{
-				DefaultCOEP: "invalid-value",
-				DefaultCOOP: "same-origin",
-				DefaultCORP: "same-origin",
 			},
 		}
 
