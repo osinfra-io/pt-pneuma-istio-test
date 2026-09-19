@@ -89,21 +89,6 @@ func TestMetadataHandler(t *testing.T) {
 	}
 }
 
-func TestHealthCheckHandler(t *testing.T) {
-	req := httptest.NewRequest("GET", "/health", nil)
-	w := httptest.NewRecorder()
-
-	HealthCheckHandler(w, req)
-
-	resp := w.Result()
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.Equal(t, "text/plain; charset=utf-8", resp.Header.Get("Content-Type"))
-
-	body, err := io.ReadAll(resp.Body)
-	assert.NoError(t, err)
-	assert.Equal(t, "OK", string(body))
-}
-
 func TestEnhancedHealthCheckHandler(t *testing.T) {
 	t.Run("basic health check response structure", func(t *testing.T) {
 		mockClient := NewClient(1*time.Second, 1, 50*time.Millisecond, 500*time.Millisecond, 2.0)

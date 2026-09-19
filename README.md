@@ -87,8 +87,26 @@ After deploying, you can get the information about the GKE cluster by running th
 kubectl port-forward --namespace istio-test $(kubectl get pod --namespace istio-test --selector="app=istio-test" --output jsonpath='{.items[0].metadata.name}') 8080:8080
 ```
 
-Curl the endpoint:
+Available endpoints:
+
+- `GET /istio-test/health` — public enhanced health check.
+- `GET /istio-test/metadata/{cluster-name|cluster-location|instance-zone}` — public GKE metadata details.
+- `GET /istio-test/auth` — protected Authentik identity details. The gateway injects trusted identity headers after sign-in; the application does not expose the JWT or session cookie.
+
+A successful authenticated `/auth` response is JSON similar to:
+
+```json
+{
+  "username": "alice",
+  "email": "alice@example.com",
+  "name": "Alice Example",
+  "uid": "user-123",
+  "groups": ["all", "platform"]
+}
+```
+
+For local development, port-forward the service and query a public endpoint:
 
 ```bash
-curl http://localhost:8080/istio-test
+curl http://localhost:8080/istio-test/health
 ```

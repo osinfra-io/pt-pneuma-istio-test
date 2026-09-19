@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"istio-test/internal/auth"
 	"istio-test/internal/config"
 	"istio-test/internal/metadata"
 	"istio-test/internal/observability"
@@ -77,7 +78,7 @@ func main() {
 	mux := httptrace.NewServeMux()
 	mux.HandleFunc("/istio-test/metadata/", metadata.SecureMetadataHandlerWithOptions(metadataClient.FetchMetadata, apiSecurityOptions))
 	mux.HandleFunc("/istio-test/health", metadata.SecureEnhancedHealthCheckHandlerWithOptions(metadataClient, apiSecurityOptions))
-	mux.HandleFunc("/istio-test/health/basic", metadata.SecureHealthCheckHandlerWithOptions(apiSecurityOptions)) // Keep basic health check for compatibility
+	mux.HandleFunc("/istio-test/auth", auth.SecureHandlerWithOptions(apiSecurityOptions))
 	mux.HandleFunc("/", metadata.SecureNotFoundHandlerWithOptions(defaultSecurityOptions))
 
 	// Wrap the entire mux with request logging middleware
