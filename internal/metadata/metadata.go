@@ -147,16 +147,6 @@ func getVersion() string {
 	return version
 }
 
-func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
-	// Set content type for health check
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	if _, err := w.Write([]byte("OK")); err != nil {
-		observability.ErrorWithContext(r.Context(), fmt.Sprintf("Error writing response: %v", err))
-		http.Error(w, "Failed to write response", http.StatusInternalServerError)
-	}
-}
-
 // EnhancedHealthCheckHandler provides comprehensive health checks including dependencies
 func EnhancedHealthCheckHandler(metadataClient *Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -288,11 +278,6 @@ func determineOverallHealth(checks map[string]HealthCheck) HealthStatus {
 
 	// All checks are healthy
 	return HealthStatusHealthy
-}
-
-// SecureHealthCheckHandlerWithOptions returns a health check handler with configurable security headers and method validation
-func SecureHealthCheckHandlerWithOptions(options security.SecurityHeadersOptions) http.HandlerFunc {
-	return security.SecureHandlerWithOptions([]string{"GET", "HEAD"}, HealthCheckHandler, options)
 }
 
 // SecureEnhancedHealthCheckHandlerWithOptions returns an enhanced health check handler with configurable security headers and method validation
