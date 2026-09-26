@@ -2,14 +2,16 @@
 
 [![Dependabot](https://img.shields.io/github/actions/workflow/status/osinfra-io/pt-pneuma-istio-test/dependabot.yml?style=for-the-badge&logo=github&color=2088FF&label=Dependabot)](https://github.com/osinfra-io/pt-pneuma-istio-test/actions/workflows/dependabot.yml)
 
-An example Istio test application that shows information about the Google Kubernetes Engine (GKE) cluster.
+A small validation application for Pneuma-managed Istio gateways. It exposes health, GKE metadata, and authenticated identity endpoints used to verify routing and gateway authentication.
+
+`pt-pneuma-istio-test` builds and publishes the image; `pt-pneuma` owns its Kubernetes deployment under `regional/istio/test`.
 
 ## GitHub Actions Workflows
 
 **Workflow Details:**
 
 - **Sandbox**: Triggered on pull request (opened, synchronize), excluding .md files; manual dispatch — runs Go tests and uploads coverage reports to Datadog
-- **Release**: Triggered on published GitHub release — runs Go tests, then builds and pushes the container image to `us-docker.pkg.dev/pt-corpus-tf16-prod/pt-pneuma-standard/istio-test`
+- **Release**: Triggered on a published GitHub release — runs Go tests, then uses the shared Techne workflow to publish versioned and `latest` tags to `us-docker.pkg.dev/pt-corpus-tf16-prod/pt-pneuma-standard/istio-test`
 - **Registry**: `us-docker.pkg.dev/pt-corpus-tf16-prod/pt-pneuma-standard/istio-test`
 - **Authentication**: Workload Identity Federation via `pt-pneuma-github@pt-corpus-tf16-prod.iam.gserviceaccount.com`
 
@@ -44,7 +46,7 @@ spec:
 
     spec:
       containers:
-        - image: ghcr.io/osinfra-io/istio-test:latest
+        - image: us-docker.pkg.dev/pt-corpus-tf16-prod/pt-pneuma-standard/istio-test:latest
           imagePullPolicy: Always
           name: istio-test
 
