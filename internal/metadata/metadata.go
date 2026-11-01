@@ -147,6 +147,11 @@ func getVersion() string {
 	return version
 }
 
+// Version returns the application version.
+func Version() string {
+	return version
+}
+
 // EnhancedHealthCheckHandler provides comprehensive health checks including dependencies
 func EnhancedHealthCheckHandler(metadataClient *Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

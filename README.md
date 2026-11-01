@@ -103,9 +103,33 @@ A successful authenticated `/auth` response is JSON similar to:
   "email": "alice@example.com",
   "name": "Alice Example",
   "uid": "user-123",
-  "groups": ["all", "platform"]
+  "groups": ["all", "platform"],
+  "authentik": {
+    "application": "pneuma-sb-osinfra-io",
+    "googleEmail": "alice@example.com",
+    "outpost": "authentik Embedded Outpost",
+    "provider": "pneuma.sb.osinfra.io",
+    "version": "2025.x"
+  },
+  "request": {
+    "authentikHeaders": ["X-Authentik-Email", "X-Authentik-Groups", "X-Authentik-Name", "X-Authentik-Uid", "X-Authentik-Username"],
+    "forwardedFor": "203.0.113.10",
+    "forwardedHost": "pneuma.sb.osinfra.io",
+    "forwardedProto": "https",
+    "host": "pneuma.sb.osinfra.io",
+    "peerIdentity": "spiffe://cluster.local/ns/istio-system/sa/gateway",
+    "requestId": "0f6c1c3e-...",
+    "traceparent": "00-..."
+  },
+  "workload": {
+    "namespace": "istio-test",
+    "pod": "istio-test-6d8f7c9b5-abcde",
+    "version": "v1.2.3"
+  }
 }
 ```
+
+The `request` and `workload` objects help troubleshoot routing, authentication and the mesh. Tokens, cookies and the `Authorization` header are never returned, and only the names of the `X-Authentik-*` headers received are listed. Cluster and zone details stay on the public `/metadata/*` endpoints.
 
 For local development, port-forward the service and query a public endpoint:
 

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"istio-test/internal/security"
@@ -76,6 +77,49 @@ func TestHandler(t *testing.T) {
 	}
 }
 
+func TestHandlerIncludesRequestContext(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/istio-test/auth", nil)
+	req.Host = "pneuma.sb.osinfra.io"
+	req.Header.Set("X-Authentik-Username", "alice")
+	req.Header.Set("X-Authentik-Jwt", "secret-token")
+	req.Header.Set("Authorization", "Bearer secret-token")
+	req.Header.Set("X-Authentik-Meta-App", "pneuma-sb-osinfra-io")
+	req.Header.Set("X-Authentik-Meta-Provider", "provider")
+	req.Header.Set("X-Forwarded-Proto", "https")
+	req.Header.Set("X-Request-Id", "req-1")
+	req.Header.Set("Traceparent", "00-abc-def-01")
+	req.Header.Set("X-Forwarded-Client-Cert", "By=spiffe://cluster.local/ns/a/sa/b;Hash=abc;URI=spiffe://cluster.local/ns/istio-system/sa/gateway")
+	w := httptest.NewRecorder()
+
+	Handler(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+	if strings.Contains(w.Body.String(), "secret-token") {
+		t.Fatalf("response must not expose token values: %s", w.Body.String())
+	}
+
+	var actual Response
+	if err := json.NewDecoder(w.Body).Decode(&actual); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if actual.Request.Host != "pneuma.sb.osinfra.io" || actual.Request.ForwardedProto != "https" ||
+		actual.Request.RequestID != "req-1" || actual.Request.Traceparent != "00-abc-def-01" ||
+		actual.Request.PeerIdentity != "spiffe://cluster.local/ns/istio-system/sa/gateway" {
+		t.Fatalf("unexpected request context: %#v", actual.Request)
+	}
+	if actual.Authentik.Application != "pneuma-sb-osinfra-io" || actual.Authentik.Provider != "provider" {
+		t.Fatalf("unexpected authentik context: %#v", actual.Authentik)
+	}
+	if len(actual.Request.AuthentikHeaders) != 4 || actual.Request.AuthentikHeaders[0] != "X-Authentik-Jwt" {
+		t.Fatalf("expected sorted authentik header names, got %#v", actual.Request.AuthentikHeaders)
+	}
+	if actual.Workload.Version == "" {
+		t.Fatalf("expected workload version")
+	}
+}
+
 func TestSecureHandlerWithOptions(t *testing.T) {
 	handler := SecureHandlerWithOptions(security.SecurityHeadersOptions{COEP: "require-corp", COOP: "same-origin", CORP: "same-origin"})
 
@@ -118,5 +162,22 @@ func TestSplitGroups(t *testing.T) {
 	}
 	if got := splitGroups("all|platform"); len(got) != 2 || got[0] != "all" || got[1] != "platform" {
 		t.Fatalf("unexpected groups: %#v", got)
+	}
+}
+
+func TestPeerIdentity(t *testing.T) {
+	tests := map[string]string{
+		"":                                       "",
+		"Hash=abc":                               "",
+		`URI="spiffe://cluster.local/ns/a/sa/b"`: "spiffe://cluster.local/ns/a/sa/b",
+		`Subject="O=x;URI=spiffe://evil/ns/x/sa/y";URI=spiffe://cluster.local/ns/a/sa/b`:        "spiffe://cluster.local/ns/a/sa/b",
+		`Subject="CN=a\"b";URI=spiffe://cluster.local/ns/a/sa/b`:                                "spiffe://cluster.local/ns/a/sa/b",
+		`Subject="CN=a,URI=spiffe://evil/x"`:                                                    "",
+		`URI=spiffe://cluster.local/ns/first/sa/a,By=x;URI=spiffe://cluster.local/ns/last/sa/b`: "spiffe://cluster.local/ns/last/sa/b",
+	}
+	for header, want := range tests {
+		if got := peerIdentity(header); got != want {
+			t.Errorf("peerIdentity(%q) = %q, want %q", header, got, want)
+		}
 	}
 }
