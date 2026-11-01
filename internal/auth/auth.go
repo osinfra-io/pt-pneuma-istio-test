@@ -4,8 +4,12 @@ package auth
 import (
 	"encoding/json"
 	"net/http"
+	"os"
+	"regexp"
+	"sort"
 	"strings"
 
+	"istio-test/internal/metadata"
 	"istio-test/internal/security"
 )
 
@@ -17,6 +21,42 @@ const (
 	groupsHeader   = "X-Authentik-Groups"
 )
 
+const (
+	authentikHeaderPrefix = "X-Authentik-"
+	namespaceFile         = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+)
+
+var peerURIPattern = regexp.MustCompile(`URI=(spiffe://[^;,"]+)`)
+
+// Request describes how the request reached the workload.
+type Request struct {
+	AuthentikHeaders []string `json:"authentikHeaders"`
+	ForwardedFor     string   `json:"forwardedFor,omitempty"`
+	ForwardedHost    string   `json:"forwardedHost,omitempty"`
+	ForwardedProto   string   `json:"forwardedProto,omitempty"`
+	Host             string   `json:"host"`
+	PeerIdentity     string   `json:"peerIdentity,omitempty"`
+	RequestID        string   `json:"requestId,omitempty"`
+	Traceparent      string   `json:"traceparent,omitempty"`
+}
+
+// Authentik describes the application, provider and outpost that authorized the request.
+type Authentik struct {
+	Application  string `json:"application,omitempty"`
+	Entitlements string `json:"entitlements,omitempty"`
+	GoogleEmail  string `json:"googleEmail,omitempty"`
+	Outpost      string `json:"outpost,omitempty"`
+	Provider     string `json:"provider,omitempty"`
+	Version      string `json:"version,omitempty"`
+}
+
+// Workload describes the pod that served the request.
+type Workload struct {
+	Namespace string `json:"namespace,omitempty"`
+	Pod       string `json:"pod,omitempty"`
+	Version   string `json:"version"`
+}
+
 // Identity contains the authenticated user's non-sensitive identity details.
 type Identity struct {
 	Username string   `json:"username,omitempty"`
@@ -24,6 +64,14 @@ type Identity struct {
 	Name     string   `json:"name,omitempty"`
 	UID      string   `json:"uid,omitempty"`
 	Groups   []string `json:"groups"`
+}
+
+// Response is the identity plus the troubleshooting context for the request.
+type Response struct {
+	Identity
+	Authentik Authentik `json:"authentik"`
+	Request   Request   `json:"request"`
+	Workload  Workload  `json:"workload"`
 }
 
 // Handler returns the identity details injected by Authentik's trusted forward-auth outpost.
@@ -41,10 +89,65 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	response := Response{
+		Identity: identity,
+		Authentik: Authentik{
+			Application:  r.Header.Get("X-Authentik-Meta-App"),
+			Entitlements: r.Header.Get("X-Authentik-Entitlements"),
+			GoogleEmail:  r.Header.Get("X-Authentik-Osinfra-Google-Email"),
+			Outpost:      r.Header.Get("X-Authentik-Meta-Outpost"),
+			Provider:     r.Header.Get("X-Authentik-Meta-Provider"),
+			Version:      r.Header.Get("X-Authentik-Meta-Version"),
+		},
+		Request: Request{
+			AuthentikHeaders: authentikHeaderNames(r.Header),
+			ForwardedFor:     r.Header.Get("X-Forwarded-For"),
+			ForwardedHost:    r.Header.Get("X-Forwarded-Host"),
+			ForwardedProto:   r.Header.Get("X-Forwarded-Proto"),
+			Host:             r.Host,
+			PeerIdentity:     peerIdentity(r.Header.Get("X-Forwarded-Client-Cert")),
+			RequestID:        r.Header.Get("X-Request-Id"),
+			Traceparent:      r.Header.Get("Traceparent"),
+		},
+		Workload: Workload{
+			Namespace: namespace(),
+			Pod:       os.Getenv("HOSTNAME"),
+			Version:   metadata.Version(),
+		},
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(identity); err != nil {
+	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, "Failed to encode identity response", http.StatusInternalServerError)
 	}
+}
+
+// authentikHeaderNames lists only the names of the identity headers received, never their values.
+func authentikHeaderNames(headers http.Header) []string {
+	names := make([]string, 0)
+	for name := range headers {
+		if strings.HasPrefix(name, authentikHeaderPrefix) {
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names)
+	return names
+}
+
+// peerIdentity extracts only the caller's SPIFFE ID from the forwarded client certificate header.
+func peerIdentity(xfcc string) string {
+	if match := peerURIPattern.FindStringSubmatch(xfcc); match != nil {
+		return match[1]
+	}
+	return ""
+}
+
+func namespace() string {
+	data, err := os.ReadFile(namespaceFile)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(data))
 }
 
 func splitGroups(value string) []string {
