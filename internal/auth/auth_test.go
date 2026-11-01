@@ -164,3 +164,19 @@ func TestSplitGroups(t *testing.T) {
 		t.Fatalf("unexpected groups: %#v", got)
 	}
 }
+
+func TestPeerIdentity(t *testing.T) {
+	tests := map[string]string{
+		"":                                       "",
+		"Hash=abc":                               "",
+		`URI="spiffe://cluster.local/ns/a/sa/b"`: "spiffe://cluster.local/ns/a/sa/b",
+		`Subject="O=x;URI=spiffe://evil/ns/x/sa/y";URI=spiffe://cluster.local/ns/a/sa/b`:        "spiffe://cluster.local/ns/a/sa/b",
+		`Subject="CN=a,URI=spiffe://evil/x"`:                                                    "",
+		`URI=spiffe://cluster.local/ns/first/sa/a,By=x;URI=spiffe://cluster.local/ns/last/sa/b`: "spiffe://cluster.local/ns/last/sa/b",
+	}
+	for header, want := range tests {
+		if got := peerIdentity(header); got != want {
+			t.Errorf("peerIdentity(%q) = %q, want %q", header, got, want)
+		}
+	}
+}

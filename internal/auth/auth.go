@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
-	"regexp"
 	"sort"
 	"strings"
 
@@ -25,8 +24,6 @@ const (
 	authentikHeaderPrefix = "X-Authentik-"
 	namespaceFile         = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
 )
-
-var peerURIPattern = regexp.MustCompile(`URI=(spiffe://[^;,"]+)`)
 
 // Request describes how the request reached the workload.
 type Request struct {
@@ -134,12 +131,44 @@ func authentikHeaderNames(headers http.Header) []string {
 	return names
 }
 
-// peerIdentity extracts only the caller's SPIFFE ID from the forwarded client certificate header.
+// peerIdentity extracts only the caller's SPIFFE ID from the last hop of the forwarded client
+// certificate header. Entries are separated by commas and fields by semicolons, but quoted values
+// (such as Subject) may contain either, so splitting honors double quotes.
 func peerIdentity(xfcc string) string {
-	if match := peerURIPattern.FindStringSubmatch(xfcc); match != nil {
-		return match[1]
+	entries := splitOutsideQuotes(xfcc, ',')
+	if len(entries) == 0 {
+		return ""
+	}
+	for _, field := range splitOutsideQuotes(entries[len(entries)-1], ';') {
+		key, value, found := strings.Cut(field, "=")
+		if !found || !strings.EqualFold(strings.TrimSpace(key), "URI") {
+			continue
+		}
+		value = strings.Trim(strings.TrimSpace(value), `"`)
+		if strings.HasPrefix(value, "spiffe://") {
+			return value
+		}
 	}
 	return ""
+}
+
+func splitOutsideQuotes(s string, separator rune) []string {
+	var parts []string
+	var current strings.Builder
+	quoted := false
+	for _, r := range s {
+		switch {
+		case r == '"':
+			quoted = !quoted
+			current.WriteRune(r)
+		case r == separator && !quoted:
+			parts = append(parts, current.String())
+			current.Reset()
+		default:
+			current.WriteRune(r)
+		}
+	}
+	return append(parts, current.String())
 }
 
 func namespace() string {
