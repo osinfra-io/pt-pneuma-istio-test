@@ -171,6 +171,7 @@ func TestPeerIdentity(t *testing.T) {
 		"Hash=abc":                               "",
 		`URI="spiffe://cluster.local/ns/a/sa/b"`: "spiffe://cluster.local/ns/a/sa/b",
 		`Subject="O=x;URI=spiffe://evil/ns/x/sa/y";URI=spiffe://cluster.local/ns/a/sa/b`:        "spiffe://cluster.local/ns/a/sa/b",
+		`Subject="CN=a\"b";URI=spiffe://cluster.local/ns/a/sa/b`:                                "spiffe://cluster.local/ns/a/sa/b",
 		`Subject="CN=a,URI=spiffe://evil/x"`:                                                    "",
 		`URI=spiffe://cluster.local/ns/first/sa/a,By=x;URI=spiffe://cluster.local/ns/last/sa/b`: "spiffe://cluster.local/ns/last/sa/b",
 	}

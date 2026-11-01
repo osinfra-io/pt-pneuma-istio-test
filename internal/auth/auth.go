@@ -156,8 +156,15 @@ func splitOutsideQuotes(s string, separator rune) []string {
 	var parts []string
 	var current strings.Builder
 	quoted := false
+	escaped := false
 	for _, r := range s {
 		switch {
+		case escaped:
+			escaped = false
+			current.WriteRune(r)
+		case quoted && r == '\\':
+			escaped = true
+			current.WriteRune(r)
 		case r == '"':
 			quoted = !quoted
 			current.WriteRune(r)
