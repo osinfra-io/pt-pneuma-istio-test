@@ -13,7 +13,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	dd_logrus "gopkg.in/DataDog/dd-trace-go.v1/contrib/sirupsen/logrus"
+	dd_logrus "github.com/DataDog/dd-trace-go/contrib/sirupsen/logrus/v2"
 )
 
 var log = logrus.New()
