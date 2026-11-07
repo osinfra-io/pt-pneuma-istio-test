@@ -35,6 +35,9 @@ jobs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           exit $status
 
+      - name: Validate OpenAPI specification
+        run: pipx run --spec openapi-spec-validator==0.7.2 openapi-spec-validator openapi.yaml
+
       - name: Upload coverage reports to Datadog
         uses: DataDog/coverage-upload-github-action@d9548b1c3c4ab639d5d3ab29a1508af188975f77 # v1.0.5
         with:
