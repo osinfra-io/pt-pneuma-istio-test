@@ -10,7 +10,7 @@ A small validation application for Pneuma-managed Istio gateways. It exposes hea
 
 **Workflow Details:**
 
-- **Sandbox**: Triggered on pull request (opened, synchronize), excluding .md files; manual dispatch — runs Go tests and uploads coverage reports to Datadog
+- **Sandbox**: Triggered on pull request (opened, synchronize), excluding .md files; manual dispatch — runs Go tests, validates the OpenAPI specification, and uploads coverage reports to Datadog
 - **Release**: Triggered on a published GitHub release — runs Go tests, then uses the shared Techne workflow to publish versioned and `latest` tags to `us-docker.pkg.dev/pt-corpus-tf16-prod/pt-pneuma-standard/istio-test`
 - **Registry**: `us-docker.pkg.dev/pt-corpus-tf16-prod/pt-pneuma-standard/istio-test`
 - **Authentication**: Workload Identity Federation via `pt-pneuma-github@pt-corpus-tf16-prod.iam.gserviceaccount.com`
@@ -93,7 +93,9 @@ Available endpoints:
 
 - `GET /istio-test/health` — public enhanced health check.
 - `GET /istio-test/metadata/{cluster-name|cluster-location|instance-zone}` — public GKE metadata details.
-- `GET /istio-test/auth` — protected Authentik identity details. The gateway injects trusted identity headers after sign-in; the application does not expose the JWT or session cookie.
+- `GET /istio-test/auth` — protected authentik identity details. The gateway injects trusted identity headers after sign-in; the application does not expose the JWT or session cookie.
+
+The [OpenAPI specification](openapi.yaml) describes these endpoints and is referenced by the `istio-test` API entity in Datadog Catalog. The spec is not served by the application.
 
 A successful authenticated `/auth` response is JSON similar to:
 

@@ -1,0 +1,208 @@
+openapi: 3.0.3
+info:
+  title: Istio test API
+  version: 1.0.0
+  description: |
+    Diagnostic endpoints for Pneuma-managed Istio gateways. The gateway protects
+    the auth endpoint with authentik browser sign-in and injects trusted
+    identity headers; health and metadata endpoints are public.
+paths:
+  /istio-test/health:
+    get:
+      operationId: getHealth
+      summary: Check application and metadata service health
+      responses:
+        '200':
+          description: Healthy or degraded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+        '503':
+          description: Unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+        '500':
+          description: Failed to encode the response
+    head:
+      operationId: headHealth
+      summary: Check application and metadata service health without a response body
+      responses:
+        '200':
+          description: Healthy or degraded
+        '503':
+          description: Unhealthy
+        '500':
+          description: Failed to encode the response
+  /istio-test/metadata/{type}:
+    parameters:
+      - name: type
+        in: path
+        required: true
+        schema:
+          type: string
+          enum: [cluster-name, cluster-location, instance-zone]
+    get:
+      operationId: getMetadata
+      summary: Retrieve GKE metadata
+      responses:
+        '200':
+          description: The requested metadata keyed by type
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+        '400':
+          description: Unknown metadata type
+        '502':
+          description: Failed to fetch metadata
+        '500':
+          description: Failed to encode the response
+  /istio-test/auth:
+    get:
+      operationId: getIdentity
+      summary: Retrieve the authenticated identity and request context
+      description: Requires authentik browser sign-in through the gateway.
+      security:
+        - authentikSession: []
+      responses:
+        '200':
+          description: Authenticated identity and diagnostic context
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Identity'
+        '302':
+          description: Gateway redirect to sign-in when no session is present
+        '401':
+          description: No trusted identity headers reached the application
+        '403':
+          description: Gateway authorization denied
+        '500':
+          description: Failed to encode the response
+    head:
+      operationId: headIdentity
+      summary: Check authenticated identity without a response body
+      description: Requires authentik browser sign-in through the gateway.
+      security:
+        - authentikSession: []
+      responses:
+        '200':
+          description: Authenticated
+        '302':
+          description: Gateway redirect to sign-in when no session is present
+        '401':
+          description: No trusted identity headers reached the application
+        '403':
+          description: Gateway authorization denied
+        '500':
+          description: Failed to encode the response
+components:
+  securitySchemes:
+    authentikSession:
+      type: apiKey
+      in: header
+      name: Cookie
+      description: |
+        Browser session cookie issued by the authentik proxy outpost after
+        sign-in. Its cookie name is provider-specific.
+  schemas:
+    Health:
+      type: object
+      required: [status, timestamp, uptime, version, checks]
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        timestamp:
+          type: string
+          format: date-time
+        uptime:
+          type: string
+        version:
+          type: string
+        checks:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/HealthCheck'
+    HealthCheck:
+      type: object
+      required: [status, duration, last_checked]
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        message:
+          type: string
+        duration:
+          type: string
+        last_checked:
+          type: string
+          format: date-time
+    Identity:
+      type: object
+      required: [groups, authentik, request, workload]
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        uid:
+          type: string
+        groups:
+          type: array
+          items:
+            type: string
+        authentik:
+          type: object
+          properties:
+            application:
+              type: string
+            entitlements:
+              type: string
+            googleEmail:
+              type: string
+            outpost:
+              type: string
+            provider:
+              type: string
+            version:
+              type: string
+        request:
+          type: object
+          required: [authentikHeaders, host]
+          properties:
+            authentikHeaders:
+              type: array
+              items:
+                type: string
+            forwardedFor:
+              type: string
+            forwardedHost:
+              type: string
+            forwardedProto:
+              type: string
+            host:
+              type: string
+            peerIdentity:
+              type: string
+            requestId:
+              type: string
+            traceparent:
+              type: string
+        workload:
+          type: object
+          required: [version]
+          properties:
+            namespace:
+              type: string
+            pod:
+              type: string
+            version:
+              type: string
