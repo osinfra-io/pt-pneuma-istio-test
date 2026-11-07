@@ -67,6 +67,8 @@ paths:
       operationId: getIdentity
       summary: Retrieve the authenticated identity and request context
       description: Requires authentik browser sign-in through the gateway.
+      security:
+        - authentikSession: []
       responses:
         '200':
           description: Authenticated identity and diagnostic context
@@ -86,6 +88,8 @@ paths:
       operationId: headIdentity
       summary: Check authenticated identity without a response body
       description: Requires authentik browser sign-in through the gateway.
+      security:
+        - authentikSession: []
       responses:
         '200':
           description: Authenticated
@@ -98,6 +102,14 @@ paths:
         '500':
           description: Failed to encode the response
 components:
+  securitySchemes:
+    authentikSession:
+      type: apiKey
+      in: header
+      name: Cookie
+      description: |
+        Browser session cookie issued by the authentik proxy outpost after
+        sign-in. Its cookie name is provider-specific.
   schemas:
     Health:
       type: object
