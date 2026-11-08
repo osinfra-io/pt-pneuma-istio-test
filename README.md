@@ -15,6 +15,14 @@ A small validation application for Pneuma-managed Istio gateways. It exposes hea
 - **Registry**: `us-docker.pkg.dev/pt-corpus-tf16-prod/pt-pneuma-standard/istio-test`
 - **Authentication**: Workload Identity Federation via `pt-pneuma-github@pt-corpus-tf16-prod.iam.gserviceaccount.com`
 
+### Datadog Test Optimization
+
+The Sandbox and Release Go test jobs use Datadog Test Optimization auto-instrumentation. Test results are sent to `datadoghq.com` with service `istio-test` and environment `ci`; Sandbox also uploads its existing coverage report.
+
+Both jobs reuse the `DATADOG_API_KEY` GitHub Actions secret. It must contain an API key from the destination Datadog organization, managed in [API key settings](https://app.datadoghq.com/organization-settings/api-keys) (see the [API key documentation](https://docs.datadoghq.com/account_management/api-app-keys/)). Store the key in GitHub Actions secrets, never in source files. When the secret is unavailable, including fork and Dependabot pull requests, Test Optimization setup is skipped and the Go tests still run normally. The separate coverage upload retains its existing behavior.
+
+After running either workflow with the secret available, confirm the expected tests and outcomes for that commit in [Test Optimization Explorer](https://app.datadoghq.com/ci/test/runs?query=@git.repository.name:osinfra-io/pt-pneuma-istio-test). A passing CI job alone does not confirm that Datadog received the test results.
+
 ## Usage
 
 ```yaml

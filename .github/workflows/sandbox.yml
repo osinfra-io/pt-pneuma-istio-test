@@ -14,6 +14,10 @@ jobs:
   run_go_tests:
     name: "Go: Tests"
     runs-on: ubuntu-latest
+    env:
+      DD_API_KEY: ${{ secrets.DATADOG_API_KEY }}
+      DD_SERVICE: istio-test
+      DD_ENV: ci
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -22,6 +26,14 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: "^1.26"
+
+      - name: Configure Datadog Test Optimization
+        if: env.DD_API_KEY != ''
+        uses: datadog/test-visibility-github-action@v3
+        with:
+          languages: go
+          api_key: ${{ env.DD_API_KEY }}
+          site: datadoghq.com
 
       - name: Run tests
         run: |
