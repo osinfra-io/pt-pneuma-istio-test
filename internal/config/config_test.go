@@ -478,7 +478,7 @@ func TestGetBool(t *testing.T) {
 				os.Unsetenv(tt.key)
 			}
 
-			result := getBool(tt.key, tt.defaultValue)
+			result := parseBool(tt.key, tt.defaultValue)
 			if result != tt.expected {
 				t.Errorf("Expected %t, got %t", tt.expected, result)
 			}

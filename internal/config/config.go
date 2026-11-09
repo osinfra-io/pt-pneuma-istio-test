@@ -79,9 +79,9 @@ func Load() *Config {
 		},
 		Observability: ObservabilityConfig{
 			LogLevel:           getEnv("LOG_LEVEL", "info"),
-			EnableProfiler:     getBool("ENABLE_PROFILER", true),
-			EnableTracing:      getBool("ENABLE_TRACING", true),
-			EnablePIIRedaction: getBool("ENABLE_PII_REDACTION", true),
+			EnableProfiler:     parseBool("ENABLE_PROFILER", true),
+			EnableTracing:      parseBool("ENABLE_TRACING", true),
+			EnablePIIRedaction: parseBool("ENABLE_PII_REDACTION", true),
 			ShutdownTimeout:    getDuration("SHUTDOWN_TIMEOUT", 5*time.Second),
 		},
 	}
@@ -131,8 +131,8 @@ func getFloat(key string, defaultValue float64) float64 {
 	return defaultValue
 }
 
-// getBool parses a boolean from an environment variable or returns a default value
-func getBool(key string, defaultValue bool) bool {
+// parseBool parses a boolean from an environment variable or returns a default value
+func parseBool(key string, defaultValue bool) bool {
 	if value := os.Getenv(key); value != "" {
 		if boolValue, err := strconv.ParseBool(value); err == nil {
 			return boolValue
