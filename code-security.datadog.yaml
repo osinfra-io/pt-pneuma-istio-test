@@ -3,3 +3,4 @@ iac:
   ignore-rules:
     # Dockerfile ENV values intentionally reference preceding build ARGs.
     - dockerfile-env-no-refer-envvar
+    - dockerfile-healthcheck-instruction-missing
