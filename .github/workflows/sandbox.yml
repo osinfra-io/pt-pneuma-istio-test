@@ -33,7 +33,7 @@ jobs:
 
       - name: Configure Datadog Test Optimization
         if: env.DD_API_KEY != ''
-        uses: datadog/test-visibility-github-action@7ce545f228901e4ac4ef0b45d946120f1c4124e0 # v3.3.0
+        uses: datadog/test-visibility-github-action@5edd68fd416710b29ed386e603f4b98606f24282 # v3.4.0
         with:
           languages: go
           api_key: ${{ env.DD_API_KEY }}
